@@ -38,7 +38,7 @@
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.saturnshift.io"
+      "href": "https://app.saturnshift.io/psp/dashboard"
     }
   },
   "footer": {
