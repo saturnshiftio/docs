@@ -1,0 +1,381 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SaturnShift Partner API",
+    "version": "1.0.0",
+    "description": "Server-to-server API for partner PSPs to authenticate, read native crypto transactions and merchants, and receive webhooks. All endpoints are scoped to the authenticated institution."
+  },
+  "servers": [
+    {
+      "url": "https://api.saturnshift.io",
+      "description": "Production"
+    }
+  ],
+  "security": [],
+  "tags": [
+    { "name": "Authentication", "description": "OAuth2 client credentials." },
+    { "name": "Transactions", "description": "Read native crypto transactions." },
+    { "name": "Merchants", "description": "Read your merchants." }
+  ],
+  "paths": {
+    "/oauth/token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Get an access token",
+        "description": "Exchange your client credentials for a short-lived bearer token using the OAuth2 client_credentials grant. Send the credentials in the body (application/x-www-form-urlencoded) or as HTTP Basic auth. Tokens expire in 1 hour.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["grant_type", "client_id", "client_secret"],
+                "properties": {
+                  "grant_type": {
+                    "type": "string",
+                    "enum": ["client_credentials"],
+                    "example": "client_credentials"
+                  },
+                  "client_id": { "type": "string", "example": "ss_client_live_xxx" },
+                  "client_secret": { "type": "string", "example": "ss_secret_live_xxx" },
+                  "scope": {
+                    "type": "string",
+                    "description": "Optional space-separated subset of your granted scopes.",
+                    "example": "transactions:read merchants:read"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token issued",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TokenResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Unsupported grant type or invalid scope",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/OAuthError" } }
+            }
+          },
+          "401": {
+            "description": "Invalid client credentials",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/OAuthError" } }
+            }
+          }
+        }
+      }
+    },
+    "/v1/transactions": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "List transactions",
+        "description": "Returns your institution's native crypto transactions, newest first. Cursor paginate with `starting_after` using the `next_cursor` from the previous page.",
+        "security": [{ "oauth2": ["transactions:read"] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size (1-100).",
+            "schema": { "type": "integer", "default": 25, "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "starting_after",
+            "in": "query",
+            "description": "Cursor: return transactions with an id lower than this (from a prior next_cursor).",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by normalized status, for example paid, pending, failed, refunded, partially_refunded.",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "merchant_id",
+            "in": "query",
+            "description": "Filter to a single merchant.",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "external_reference",
+            "in": "query",
+            "description": "Filter by the reference you supplied at payment creation (your order id).",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Exact transaction id (returns a zero-or-one list).",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "created_after",
+            "in": "query",
+            "description": "ISO 8601 lower bound on created_at.",
+            "schema": { "type": "string", "format": "date-time" }
+          },
+          {
+            "name": "created_before",
+            "in": "query",
+            "description": "ISO 8601 upper bound on created_at.",
+            "schema": { "type": "string", "format": "date-time" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of transactions",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TransactionList" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/transactions/{id}": {
+      "get": {
+        "tags": ["Transactions"],
+        "summary": "Get a transaction",
+        "security": [{ "oauth2": ["transactions:read"] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The transaction",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Transaction" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/merchants": {
+      "get": {
+        "tags": ["Merchants"],
+        "summary": "List merchants",
+        "description": "Returns your institution's merchants, newest first. Use this to map your merchant records to SaturnShift merchant ids.",
+        "security": [{ "oauth2": ["merchants:read"] }],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 25, "minimum": 1, "maximum": 100 }
+          },
+          {
+            "name": "starting_after",
+            "in": "query",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of merchants",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/MerchantList" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/merchants/{id}": {
+      "get": {
+        "tags": ["Merchants"],
+        "summary": "Get a merchant",
+        "security": [{ "oauth2": ["merchants:read"] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "The merchant",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Merchant" } }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "oauth2": {
+        "type": "oauth2",
+        "description": "OAuth2 client credentials. Request a token from /oauth/token and send it as `Authorization: Bearer <token>`.",
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "https://api.saturnshift.io/oauth/token",
+            "scopes": {
+              "transactions:read": "Read transactions",
+              "merchants:read": "Read merchants"
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid bearer token",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OAuthError" } } }
+      },
+      "Forbidden": {
+        "description": "Token is missing the required scope",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OAuthError" } } }
+      },
+      "NotFound": {
+        "description": "Resource not found in your institution",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": { "type": "string", "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." },
+          "token_type": { "type": "string", "example": "Bearer" },
+          "expires_in": { "type": "integer", "example": 3600 },
+          "scope": { "type": "string", "example": "transactions:read merchants:read" }
+        }
+      },
+      "Amount": {
+        "type": "object",
+        "description": "Decimal amounts as strings.",
+        "properties": {
+          "gross": { "type": "string", "nullable": true, "example": "1.13" },
+          "net": { "type": "string", "nullable": true, "example": "1.00" },
+          "expected": { "type": "string", "nullable": true, "example": "1.13" },
+          "psp_fee": { "type": "string", "nullable": true, "example": "0.08" },
+          "gas_fee": { "type": "string", "nullable": true, "example": "0.05" },
+          "bridge_fee": { "type": "string", "nullable": true, "example": "0.00" }
+        }
+      },
+      "Networks": {
+        "type": "object",
+        "properties": {
+          "payment": { "type": "string", "nullable": true, "example": "BASE" },
+          "settlement": { "type": "string", "nullable": true, "example": "BASE" }
+        }
+      },
+      "TxHashes": {
+        "type": "object",
+        "properties": {
+          "source": { "type": "string", "nullable": true, "example": "0x..." },
+          "bridge": { "type": "string", "nullable": true },
+          "settlement": { "type": "string", "nullable": true, "example": "0x..." }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "example": "transaction" },
+          "id": { "type": "integer", "example": 1377 },
+          "merchant_id": { "type": "integer", "example": 116 },
+          "status": {
+            "type": "string",
+            "description": "Normalized status: paid (settled to the merchant's external wallet), pending, failed, refunded, partially_refunded.",
+            "example": "paid"
+          },
+          "raw_status": {
+            "type": "string",
+            "description": "The underlying internal status (for example succeeded = held in the custodial wallet, paid = sent to the merchant).",
+            "example": "paid"
+          },
+          "amount_status": {
+            "type": "string",
+            "nullable": true,
+            "enum": ["EXACT", "UNDERPAID", "OVERPAID"],
+            "example": "EXACT"
+          },
+          "asset": { "type": "string", "nullable": true, "example": "USDC" },
+          "currency": { "type": "string", "nullable": true, "example": "USD" },
+          "amount": { "$ref": "#/components/schemas/Amount" },
+          "networks": { "$ref": "#/components/schemas/Networks" },
+          "tx_hashes": { "$ref": "#/components/schemas/TxHashes" },
+          "customer_email": { "type": "string", "nullable": true, "example": "buyer@example.com" },
+          "external_reference": { "type": "string", "nullable": true, "example": "order_10432" },
+          "created_at": { "type": "string", "format": "date-time", "nullable": true },
+          "paid_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "TransactionList": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "example": "list" },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Transaction" } },
+          "has_more": { "type": "boolean", "example": false },
+          "next_cursor": { "type": "integer", "nullable": true, "example": null }
+        }
+      },
+      "Merchant": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "example": "merchant" },
+          "id": { "type": "integer", "example": 116 },
+          "name": { "type": "string", "nullable": true, "example": "Green Leaf Coffee" },
+          "legal_name": { "type": "string", "nullable": true },
+          "email": { "type": "string", "nullable": true, "example": "owner@greenleaf.example" },
+          "status": { "type": "string", "nullable": true, "example": "ACTIVE" },
+          "onboarding_status": { "type": "string", "nullable": true, "example": "ACTIVE" },
+          "crypto_enabled": { "type": "boolean", "example": true },
+          "onboarding_complete": { "type": "boolean", "example": true },
+          "created_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "MerchantList": {
+        "type": "object",
+        "properties": {
+          "object": { "type": "string", "example": "list" },
+          "data": { "type": "array", "items": { "$ref": "#/components/schemas/Merchant" } },
+          "has_more": { "type": "boolean", "example": false },
+          "next_cursor": { "type": "integer", "nullable": true, "example": null }
+        }
+      },
+      "OAuthError": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "invalid_client" },
+          "error_description": { "type": "string", "nullable": true }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "not_found" },
+          "error_description": { "type": "string", "nullable": true }
+        }
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "description": "The signed JSON body POSTed to your webhook endpoint.",
+        "properties": {
+          "id": { "type": "string", "example": "evt_1a2b3c" },
+          "type": { "type": "string", "example": "payment.paid" },
+          "created": { "type": "integer", "description": "Unix timestamp (seconds).", "example": 1720000000 },
+          "data": { "$ref": "#/components/schemas/Transaction" }
+        }
+      }
+    }
+  }
+}

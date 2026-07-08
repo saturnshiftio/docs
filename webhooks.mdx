@@ -1,0 +1,99 @@
+---
+title: "Webhooks"
+description: "Receive signed events as payments move through their lifecycle."
+---
+
+SaturnShift POSTs a signed JSON event to your endpoint whenever a payment changes state. Add and manage endpoints from the **Developers** section of your PSP portal.
+
+## Events
+
+| Event | When it fires | `data.status` |
+| --- | --- | --- |
+| `payment.succeeded` | Customer paid; funds held in the custodial wallet | `paid` |
+| `payment.paid` | Funds transferred to the merchant's external wallet | `paid` |
+| `payment.refunded` | Payment refunded, full or partial | `refunded` / `partially_refunded` |
+
+## Payload
+
+Every event uses the same envelope. `data` is the full transaction object, identical in shape to the REST API.
+
+```json
+{
+  "id": "evt_1a2b3c",
+  "type": "payment.paid",
+  "created": 1720000000,
+  "data": {
+    "object": "transaction",
+    "id": 1377,
+    "merchant_id": 116,
+    "status": "paid",
+    "amount_status": "EXACT",
+    "asset": "USDC",
+    "currency": "USD",
+    "amount": { "gross": "1.13", "net": "1.00", "psp_fee": "0.08", "gas_fee": "0.05", "bridge_fee": "0.00" },
+    "networks": { "payment": "BASE", "settlement": "BASE" },
+    "tx_hashes": { "source": "0x...", "bridge": null, "settlement": "0x..." },
+    "external_reference": "order_10432",
+    "created_at": "2026-07-07T22:15:21.213Z",
+    "paid_at": "2026-07-07T22:16:03.000Z"
+  }
+}
+```
+
+## Headers
+
+| Header | Description |
+| --- | --- |
+| `SaturnShift-Signature` | `t=<unix>,v1=<hmac-sha256>` |
+| `SaturnShift-Event-Id` | The event id. Use it to dedupe. |
+| `SaturnShift-Event-Type` | The event type. |
+
+## Verify the signature
+
+The signature is `HMAC-SHA256` of `<timestamp>.<raw request body>` using your endpoint's signing secret (shown on the Developers page). Compute it over the **raw** body, before any JSON parsing.
+
+```js Node.js (Express)
+import crypto from "crypto";
+
+// express.raw gives you the exact bytes we signed.
+app.post("/webhooks/saturnshift", express.raw({ type: "*/*" }), (req, res) => {
+  const raw = req.body.toString("utf8");
+  const header = req.get("SaturnShift-Signature") || "";
+  const t = (header.split(",")[0] || "").split("=")[1];
+  const v1 = (header.split(",")[1] || "").split("=")[1];
+
+  const expected = crypto
+    .createHmac("sha256", process.env.SATURNSHIFT_WEBHOOK_SECRET)
+    .update(`${t}.${raw}`)
+    .digest("hex");
+
+  const valid =
+    !!v1 &&
+    v1.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(v1), Buffer.from(expected));
+
+  if (!valid) return res.status(400).send("bad signature");
+
+  const event = JSON.parse(raw);
+  // handle event.type: "payment.paid", "payment.succeeded", "payment.refunded"
+
+  res.status(200).send("ok"); // any 2xx acknowledges
+});
+```
+
+<Warning>
+Acknowledge with a `2xx` only after you have stored the event. Any non-2xx status, or a response slower than 10 seconds, is treated as a failed delivery.
+</Warning>
+
+## Retries and auto-disable
+
+- Failed deliveries are retried with backoff (roughly 1m, 5m, 15m, 1h, 3h, 6h, 12h).
+- After several days of continuous failure, the endpoint is auto-disabled and your PSP admins are emailed. Re-enable it from the Developers page once the receiver is fixed.
+- You can resend any delivery from the deliveries log in the portal.
+
+## Best practices
+
+- **Dedupe** on `SaturnShift-Event-Id`. Deliveries can repeat.
+- **Return fast.** Send a 2xx immediately, then process asynchronously.
+- **Reconcile** with `GET /v1/transactions` rather than trusting webhooks alone.
+- **Match your orders** using `external_reference` (the value you set at checkout) or by storing the SaturnShift `id` from the event.

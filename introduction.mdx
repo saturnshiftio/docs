@@ -1,0 +1,44 @@
+---
+title: "Introduction"
+description: "Connect your platform to SaturnShift native crypto payments."
+---
+
+The SaturnShift Partner API lets your platform authenticate, read your merchants' native crypto transactions, and receive real-time webhooks as payments move through their lifecycle. Every request is scoped to your institution, so you only ever see your own data.
+
+## Base URL
+
+All requests go to:
+
+```
+https://api.saturnshift.io
+```
+
+## What you integrate
+
+<CardGroup cols={3}>
+  <Card title="Authenticate" icon="key" href="/authentication">
+    Exchange your client credentials for a short-lived bearer token.
+  </Card>
+  <Card title="Read data" icon="table" href="/quickstart">
+    Pull transactions and merchants over REST for reconciliation and detail.
+  </Card>
+  <Card title="Receive webhooks" icon="bell" href="/webhooks">
+    Get notified the moment a payment is paid or refunded.
+  </Card>
+</CardGroup>
+
+## How a payment flows
+
+A native crypto payment moves through states you are notified about:
+
+1. **payment.succeeded**: the customer paid. Funds are held in SaturnShift's custodial wallet for the merchant.
+2. **payment.paid**: the funds have been transferred to the merchant's own external wallet.
+3. **payment.refunded**: the payment was refunded, in full or in part.
+
+<Note>
+Webhooks are for real time; the REST API is the source of truth for reconciliation. Use both. A missed webhook is always recoverable from the API.
+</Note>
+
+## Self-service setup
+
+Your API credentials and webhook endpoints are managed from the **Developers** section of your SaturnShift PSP portal. Generate credentials, add webhook endpoints, send test events, and review the delivery log there. Nothing is provisioned by hand.

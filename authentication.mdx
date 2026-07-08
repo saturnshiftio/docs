@@ -1,0 +1,64 @@
+---
+title: "Authentication"
+description: "OAuth2 client credentials."
+---
+
+The Partner API uses the OAuth2 **client_credentials** grant. You get a `client_id` and `client_secret` from the **Developers** section of your SaturnShift PSP portal, exchange them for an access token, and send that token on every API request.
+
+## Get a token
+
+Send your credentials to the token endpoint. You can pass them in the form body or as HTTP Basic auth.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.saturnshift.io/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials" \
+  -d "client_id=ss_client_live_xxx" \
+  -d "client_secret=ss_secret_live_xxx"
+```
+
+```js Node.js
+const res = await fetch("https://api.saturnshift.io/oauth/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  body: new URLSearchParams({
+    grant_type: "client_credentials",
+    client_id: process.env.SATURNSHIFT_CLIENT_ID,
+    client_secret: process.env.SATURNSHIFT_CLIENT_SECRET,
+  }),
+});
+const { access_token } = await res.json();
+```
+</CodeGroup>
+
+Response:
+
+```json
+{
+  "access_token": "eyJhbGciOi...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "transactions:read merchants:read"
+}
+```
+
+## Use the token
+
+Send it as a bearer token on every request:
+
+```bash
+curl https://api.saturnshift.io/v1/transactions \
+  -H "Authorization: Bearer eyJhbGciOi..."
+```
+
+## Token lifetime and scopes
+
+- Tokens expire after **1 hour** (`expires_in: 3600`). Cache the token and refresh on expiry or when you get a `401`.
+- Scopes are `transactions:read` and `merchants:read`. Request a subset with the optional `scope` parameter; you can never exceed what your client was granted.
+
+## Security
+
+- Send the `client_secret` in the body or via Basic auth. Never put it in the query string.
+- Store the secret server-side only.
+- Rotate the secret any time from the Developers page. The previous secret stops working immediately.
