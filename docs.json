@@ -16,7 +16,7 @@
         "groups": [
           {
             "group": "Get Started",
-            "pages": ["introduction", "quickstart", "authentication"]
+            "pages": ["index", "quickstart", "authentication"]
           },
           {
             "group": "Webhooks",
