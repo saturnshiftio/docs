@@ -9,6 +9,10 @@
     {
       "url": "https://api.saturnshift.io",
       "description": "Production"
+    },
+    {
+      "url": "https://api.staging.saturnshift.io",
+      "description": "Staging"
     }
   ],
   "security": [],

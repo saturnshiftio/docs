@@ -1,0 +1,25 @@
+---
+title: "Environments"
+description: "Staging and production are fully isolated."
+---
+
+SaturnShift has two isolated environments. Build and test against **staging**,
+then switch to **production**. Everything in these docs is identical across the
+two, you only swap the base URL and use the matching credentials.
+
+| | Staging | Production |
+| --- | --- | --- |
+| API base URL | `https://api.staging.saturnshift.io` | `https://api.saturnshift.io` |
+| Dashboard | `https://app.staging.saturnshift.io` | `https://app.saturnshift.io` |
+| Credentials | `ss_client_test_...` / `ss_secret_test_...` | `ss_client_live_...` / `ss_secret_live_...` |
+| Merchant keys | `pk_test_...` | `pk_live_...` |
+
+Credentials, merchants, transactions, and webhook endpoints are **separate** in
+each environment. Generate your credentials from the Developers page in that
+environment's dashboard, and send requests to the matching base URL.
+
+<Note>
+A staging token only works against the staging API, and a live token only
+against production. The `test` / `live` prefix on your credentials tells you
+which environment they belong to.
+</Note>
