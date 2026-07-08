@@ -172,7 +172,7 @@
       "get": {
         "tags": ["Merchants"],
         "summary": "List merchants",
-        "description": "Returns your institution's merchants, newest first. Use this to map your merchant records to SaturnShift merchant ids.",
+        "description": "Returns your institution's merchants, newest first. Filter by `psp_reference_id` (your own reference) or `id` to fetch a specific merchant, for example to read its `public_key`.",
         "security": [{ "oauth2": ["merchants:read"] }],
         "parameters": [
           {
@@ -184,6 +184,18 @@
             "name": "starting_after",
             "in": "query",
             "schema": { "type": "integer" }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "description": "Exact SaturnShift merchant id (returns a zero-or-one list).",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "psp_reference_id",
+            "in": "query",
+            "description": "Your own reference for the merchant, set at onboarding.",
+            "schema": { "type": "string" }
           }
         ],
         "responses": {
@@ -336,6 +348,8 @@
           "name": { "type": "string", "nullable": true, "example": "Green Leaf Coffee" },
           "legal_name": { "type": "string", "nullable": true },
           "email": { "type": "string", "nullable": true, "example": "owner@greenleaf.example" },
+          "public_key": { "type": "string", "nullable": true, "example": "pk_live_29935fed5bc9878299588621772e0bc9" },
+          "psp_reference_id": { "type": "string", "nullable": true, "example": "YOUR-MERCHANT-REF" },
           "status": { "type": "string", "nullable": true, "example": "ACTIVE" },
           "onboarding_status": { "type": "string", "nullable": true, "example": "ACTIVE" },
           "crypto_enabled": { "type": "boolean", "example": true },

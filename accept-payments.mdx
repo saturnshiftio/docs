@@ -13,26 +13,29 @@ merchants: you integrate once and pass the correct merchant per checkout.
 ## 1. Get the merchant's publishable key
 
 Each merchant has a publishable key (`pk_live_...`) that is safe to use in the
-browser. Fetch it from the merchants API and store the mapping between your own
-merchant record and the SaturnShift `public_key`.
+browser. Fetch just the merchant you need, either by the reference you set when
+you onboarded them (`psp_reference_id`) or by the SaturnShift merchant id. Store
+the `public_key` against your merchant record once and reuse it on every
+checkout for that merchant.
 
 ```bash
-curl https://api.saturnshift.io/v1/merchants \
+# By your own reference (returns a list with the matching merchant)
+curl "https://api.saturnshift.io/v1/merchants?psp_reference_id=YOUR-MERCHANT-REF" \
+  -H "Authorization: Bearer <access_token>"
+
+# Or directly by SaturnShift id (returns the merchant object)
+curl https://api.saturnshift.io/v1/merchants/116 \
   -H "Authorization: Bearer <access_token>"
 ```
 
 ```json
 {
-  "object": "list",
-  "data": [
-    {
-      "object": "merchant",
-      "id": 116,
-      "name": "Green Leaf Coffee",
-      "public_key": "pk_live_29935fed5bc9878299588621772e0bc9",
-      "status": "ACTIVE"
-    }
-  ]
+  "object": "merchant",
+  "id": 116,
+  "name": "Green Leaf Coffee",
+  "public_key": "pk_live_29935fed5bc9878299588621772e0bc9",
+  "psp_reference_id": "YOUR-MERCHANT-REF",
+  "status": "ACTIVE"
 }
 ```
 
