@@ -19,6 +19,10 @@
             "pages": ["index", "quickstart", "authentication"]
           },
           {
+            "group": "Accept Payments",
+            "pages": ["accept-payments"]
+          },
+          {
             "group": "Webhooks",
             "pages": ["webhooks"]
           }

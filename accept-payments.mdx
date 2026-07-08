@@ -1,0 +1,101 @@
+---
+title: "Accept Payments"
+description: "Add the SaturnShift crypto Pay button to your checkout or paylink."
+---
+
+Add a "Pay with crypto" button to your checkout alongside your other payment
+methods. When a customer chooses it, they are taken to the SaturnShift hosted
+checkout to pay on-chain, and you receive a webhook when it settles.
+
+This is the model for a platform that renders the button on behalf of its
+merchants: you integrate once and pass the correct merchant per checkout.
+
+## 1. Get the merchant's publishable key
+
+Each merchant has a publishable key (`pk_live_...`) that is safe to use in the
+browser. Fetch it from the merchants API and store the mapping between your own
+merchant record and the SaturnShift `public_key`.
+
+```bash
+curl https://api.saturnshift.io/v1/merchants \
+  -H "Authorization: Bearer <access_token>"
+```
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "object": "merchant",
+      "id": 116,
+      "name": "Green Leaf Coffee",
+      "public_key": "pk_live_29935fed5bc9878299588621772e0bc9",
+      "status": "ACTIVE"
+    }
+  ]
+}
+```
+
+## 2. Render the button
+
+Load the checkout script and initialize it with the merchant's `publicKey`, the
+order amount, and your own order id. Use a stable order id for both
+`externalReference` and `idempotencyKey` so a retry of the same order dedupes
+instead of creating a duplicate payment.
+
+```html
+<button id="payWithCryptoBtn">Pay with crypto</button>
+
+<script src="https://api.saturnshift.io/checkout.js"></script>
+<script>
+  const orderId = "ORDER-123"; // your stable order id
+
+  SaturnShift.checkout({
+    publicKey: "pk_live_29935fed5bc9878299588621772e0bc9", // the merchant's key
+    amount: 1.00,
+    currency: "USD",
+    title: "Order #123",
+    externalReference: orderId,
+    idempotencyKey: orderId,
+    redirectUrl: "https://your-portal.com/paylink/success",
+    openInNewTab: true,   // opens the hosted checkout in a new page
+    allowCrypto: true,
+  }, "#payWithCryptoBtn");
+</script>
+```
+
+The customer is taken to the SaturnShift hosted checkout to connect a wallet and
+pay, then returned to your `redirectUrl`.
+
+## 3. Verify the amount before you fulfill
+
+<Warning>
+The amount is set in the browser, so you must confirm it server-side. When the
+`payment.paid` webhook arrives, check that the amount actually paid is at least
+your order amount, matched by `external_reference`, before you mark the order
+paid or fulfill it. Never fulfill on the event type alone.
+</Warning>
+
+```js
+// In your webhook handler, after verifying the signature (see Webhooks):
+const event = JSON.parse(rawBody);
+
+if (event.type === "payment.paid") {
+  const order = await getOrder(event.data.external_reference);
+  const paid = Number(event.data.amount.gross); // what the customer paid
+
+  if (!order || paid < order.amount) {
+    // Underpaid or unknown order. Do not fulfill; flag for review.
+    return;
+  }
+
+  await markOrderPaid(order.id, event.data.id);
+}
+```
+
+`data.amount.gross` is the amount the customer actually paid. `data.amount_status`
+(`EXACT` / `UNDERPAID` / `OVERPAID`) tells you how it compared to what was
+requested, but always compare against your own order amount as well, since the
+requested amount originates in the browser.
+
+See [Webhooks](/webhooks) for signature verification and the full event payload.
