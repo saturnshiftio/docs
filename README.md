@@ -1,55 +1,41 @@
-# Mintlify Starter Kit
+# SaturnShift Partner API docs
 
-Use the starter kit to get your docs deployed and ready to customize.
+Mintlify docs for the SaturnShift Partner API, to be published at **docs.saturnshift.io**.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Files
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+| File | Purpose |
+| --- | --- |
+| `docs.json` | Mintlify config: theme, colors, navigation, API Reference tab |
+| `openapi.json` | OpenAPI 3 spec. Mintlify auto-generates the API Reference + playground from it |
+| `introduction.mdx` | Overview |
+| `quickstart.mdx` | Four-step get-started |
+| `authentication.mdx` | OAuth2 client_credentials guide |
+| `webhooks.mdx` | Event catalog, payloads, signature verification, retries |
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
+## Preview locally
 
 ```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
 npm i -g mint
-```
-
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+Opens a live preview at `http://localhost:3000`.
 
-## Publishing changes
+## Deploy
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+1. Push this folder to a GitHub repo.
+2. Create a Mintlify account (Starter is free and includes custom domains) and install the Mintlify GitHub app on the repo.
+3. Every push to the default branch auto-deploys.
 
-## Need help?
+## Custom domain (docs.saturnshift.io)
 
-### Troubleshooting
+1. In the Mintlify dashboard: Settings, Custom Domain, enter `docs.saturnshift.io`.
+2. Add the CNAME record it gives you to your DNS (`docs` -> the Mintlify target).
+3. Wait for propagation. The docs then serve only at `docs.saturnshift.io`.
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+## Before you publish, confirm these placeholders
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+- **API host.** The spec and guides use `https://api.saturnshift.io`. If your production API is served from a different host, find-and-replace it across `openapi.json`, `authentication.mdx`, `quickstart.mdx`, and `webhooks.mdx`.
+- **Branding assets.** Add `favicon.svg` (referenced in `docs.json`) and, if you want a wordmark, a `logo/` with light and dark variants plus a `logo` block in `docs.json`.
+- **Dashboard link.** `docs.json` points the navbar button at `https://app.saturnshift.io`. Adjust if needed.
