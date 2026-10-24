@@ -36,8 +36,8 @@ with your `test` credentials. See [Environments](/environments).
 
 A native crypto payment moves through states you are notified about:
 
-1. **payment.succeeded**: the customer paid. Funds are held in SaturnShift's custodial wallet for the merchant.
-2. **payment.paid**: the funds have been transferred to the merchant's own external wallet.
+1. **payment.succeeded**: the customer's payment has completed. Use this as the payment-completion signal. It does not mean every downstream settlement step, such as a bank payout, has finished.
+2. **payment.paid**: a later settlement-confirmation event from the legacy custodial settlement model. Direct Settlement settles directly to your own wallet and does not emit `payment.paid`, so Direct Settlement integrations should not depend on it.
 3. **payment.refunded**: the payment was refunded, in full or in part.
 
 <Note>

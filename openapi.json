@@ -310,12 +310,12 @@
           "merchant_id": { "type": "integer", "example": 116 },
           "status": {
             "type": "string",
-            "description": "Normalized status: paid (settled to the merchant's external wallet), pending, failed, refunded, partially_refunded.",
+            "description": "Normalized status: paid (settled to the merchant's own wallet), pending, failed, refunded, partially_refunded.",
             "example": "paid"
           },
           "raw_status": {
             "type": "string",
-            "description": "The underlying internal status (for example succeeded = held in the custodial wallet, paid = sent to the merchant).",
+            "description": "The underlying internal status for the transaction.",
             "example": "paid"
           },
           "amount_status": {

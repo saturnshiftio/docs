@@ -9,9 +9,13 @@ SaturnShift POSTs a signed JSON event to your endpoint whenever a payment change
 
 | Event | When it fires | `data.status` |
 | --- | --- | --- |
-| `payment.succeeded` | Customer paid; funds held in the custodial wallet | `paid` |
-| `payment.paid` | Funds transferred to the merchant's external wallet | `paid` |
+| `payment.succeeded` | The customer's payment has completed. Use this as the completion signal. | `paid` |
+| `payment.paid` | Legacy custodial settlement confirmation. Direct Settlement does not emit this. | `paid` |
 | `payment.refunded` | Payment refunded, full or partial | `refunded` / `partially_refunded` |
+
+<Note>
+Use `payment.succeeded` as your completion signal: it means the customer's payment completed, not that every downstream settlement step such as a bank payout has finished. `payment.paid` is a later settlement-confirmation event from the legacy custodial settlement model. Direct Settlement settles directly to your own wallet and does not emit `payment.paid`, so Direct Settlement integrations should not depend on it.
+</Note>
 
 ## Payload
 
@@ -20,7 +24,7 @@ Every event uses the same envelope. `data` is the full transaction object, ident
 ```json
 {
   "id": "evt_1a2b3c",
-  "type": "payment.paid",
+  "type": "payment.succeeded",
   "created": 1720000000,
   "data": {
     "object": "transaction",
